@@ -3,32 +3,25 @@ import chaiAsPromised from 'chai-as-promised'
 chai.use(chaiAsPromised)
 const { expect, assert } = chai
 
-var DotSticker = artifacts.require("DotSticker");
+var DotCollectible = artifacts.require("DotCollectible");
 
 contract('Testing ERC721 contract', function(accounts) {
 
     let token;
-    const name = "Token";
+    const name = "CollectibleToken";
     const symbol = "TKN"
 
-    const account1 = accounts[0]
-    const tokenUri1 = "Some Cool Token"; // Does not have to be unique
+    const account1 = accounts[0];
+    const tokenURI = "Some Cool Token"; // Does not have to be unique
 
-    it(' Lets Mint a token ', async () => {
-        token = await DotSticker.new(name, symbol)
-        await token.mintCollectible(account1, tokenUri1, {from: accounts[0]})
+    it('Lets Mint a token ', async () => {
+        token = await DotCollectible.new(name, symbol)
+        await token.mintCollectible("Sticker", account1, tokenURI)
 
-        expect(await token.symbol()).to.equal(symbol)
-        expect(await token.name()).to.equal(name)
-
-        
+        // expect(await token.name()).to.equal(name)  
     })
 
-    it ('Try to Pay fee to Mint', async()=>{
-        token = await DotSticker.new(name, symbol)
-        await token.mintUGCollectible(account1, tokenUri1, {from:accounts[0], value:0.5})
-        expect(await token.symbol()).to.equal(symbol)
-    })
+
 
     // it('Lets get last Token ID', async() =>{
     //     const tokenID = token.getLastTokenId()

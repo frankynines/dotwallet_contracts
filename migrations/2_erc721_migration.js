@@ -1,6 +1,6 @@
-const DotSticker = artifacts.require("./DotSticker.sol");
+const DotCollectible = artifacts.require("./DotCollectible.sol");
 
 module.exports = async function(deployer) {
-  await deployer.deploy(DotSticker, "Dot Collectible", "DWC");
-  const erc721 = await DotSticker.deployed();
+  await deployer.deploy(DotCollectible, "Collectible", "DCT");
+  const erc721 = await DotCollectible.deployed();
 };

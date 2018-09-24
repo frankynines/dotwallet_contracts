@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /**
  * @title DotCollectible
- * DotSticker - a contract for Dot Wallet non-fungible Tokens.
+ * DotCollectible - a contract for Dot Wallet non-fungible Tokens.
  */
 contract DotCollectible is ERC721Token, Ownable {
     
@@ -13,6 +13,7 @@ contract DotCollectible is ERC721Token, Ownable {
     mapping (uint256 => uint) private tokenEdition;
     mapping (uint256 => uint256) private tokenOriginator;
     mapping (uint256 => uint256) private tokenGifter;
+    mapping (string => uint256) private apiIDMap;
 
     uint private mintingFee = 0.1 ether;
     uint private giftingFee = 0.1 ether;
@@ -20,16 +21,15 @@ contract DotCollectible is ERC721Token, Ownable {
     uint256 private tokenBalance = 0;
     uint256 private bankBalance = 0;
     
-     constructor(string _name, string _symbol) 
+    constructor(string _name, string _symbol) 
         public ERC721Token(_name, _symbol) { 
-
     }
 
     struct Sticker {
-        string title;
         uint generation;
         uint edition;
         uint256 value;
+        string uniqueID;
     }
 
     Sticker[] public allstickers;
@@ -47,22 +47,22 @@ contract DotCollectible is ERC721Token, Ownable {
     /**
     * @dev Mints a token to an address with a tokenURI.
     * @param _to address of the future owner of the token
-    * @param _tokenURI token URI for the token
     */
+
     function mintCollectible (
-            string _title,
-            address _to, 
-            string _tokenURI
-            ) public onlyOwner {
+        address _to,
+        string _tokenURI,
+        string _uniqueID
+        ) public {
         
         uint _edition = 0;
         uint _generation = 0;
         
         Sticker memory _sticker = Sticker({
-            title:_title, 
             generation: _generation,
             edition: _edition,
-            value: 0
+            value: 0,
+            uniqueID:_uniqueID
         });
         
         uint256 _newTokenId = allstickers.push(_sticker) - 1;
@@ -70,80 +70,49 @@ contract DotCollectible is ERC721Token, Ownable {
         tokenGifter[_newTokenId] = _newTokenId;
         
         tokenEdition[_newTokenId] = _edition;
-        
-        _mint(_to, _newTokenId);
-        _setTokenURI(_newTokenId, _tokenURI);
-        
-    }
-    
-    /**
-    * @dev Mints a user generated token.
-    * @param _to address of the future owner of the token
-    * @param _tokenURI token URI for the token
-    */
-    function mintUGCollectible (
-            string _title,
-            address _to, 
-            string _tokenURI
-            ) public payable {
-                
-        require(msg.value >= mintingFee);
-        
-        uint _edition = 0;
-        uint _generation = 0;
-        
-        Sticker memory _sticker = Sticker({
-            title:_title, 
-            generation: _generation,
-            edition: _edition,
-            value: 0
-        });
-        
-        uint256 _newTokenId = allstickers.push(_sticker) - 1;
-        tokenOriginator[_newTokenId] = _newTokenId;
-        tokenGifter[_newTokenId] = _newTokenId;
+        apiIDMap[_uniqueID] = _newTokenId; 
         
         _mint(_to, _newTokenId);
         _setTokenURI(_newTokenId, _tokenURI);
     }
     
-    /**
-    * @dev Gifts a token based off of Edition and Generation Number
-    * @param _to address of the future owner of the token
-    * @param _tokenId token ID to clone
-    */
-    function giftCollectible(uint256 _tokenId, address _to) public payable {
+    // /**
+    // * @dev Gifts a token based off of Edition and Generation Number
+    // * @param _to address of the future owner of the token
+    // * @param _tokenId token ID to clone
+    // */
+    // function giftCollectible(uint256 _tokenId, address _to) public payable {
         
-        require(isApprovedOrOwner(msg.sender, _tokenId));
+    //     require(isApprovedOrOwner(msg.sender, _tokenId), "NON Token Owner");
 
-        //Get old sticker
-        Sticker storage _sticker = allstickers[_tokenId];
-        uint _edition = _sticker.edition + 1;
-        uint _generation = _sticker.generation + 1;
+    //     //Get old sticker
+    //     Sticker storage _sticker = allstickers[_tokenId];
+    //     uint _edition = _sticker.edition + 1;
+    //     uint _generation = _sticker.generation + 1;
         
-        //If gen 0 do not require gifting fee
-        if (_sticker.generation > 0) {
-            require(msg.value >= giftingFee);
-            msg.sender.transfer(msg.value);
-        }
+    //     //If gen 0 do not require gifting fee
+    //     if (_sticker.generation > 0) {
+    //         require(msg.value >= giftingFee, "MSG Value not sufficient.");
+    //         msg.sender.transfer(msg.value);
+    //     }
         
-        tokenEdition[_tokenId] = _edition;
+    //     tokenEdition[_tokenId] = _edition;
         
-        Sticker memory _newSticker = Sticker({
-            title:_sticker.title, 
-            generation: _generation,
-            edition: _edition,
-            value: 0
-        });
+    //     Sticker memory _newSticker = Sticker({
+    //         generation: _generation,
+    //         edition: _edition,
+    //         value: 0
+    //     });
         
-        uint256 _newTokenId = allstickers.push(_newSticker) - 1;
+    //     uint256 _newTokenId = allstickers.push(_newSticker) - 1;
         
-        //Assign Generation and Gifting
-        updateTokenGenEdition(_tokenId, _newTokenId);
+    //     //Assign Generation and Gifting
+    //     updateTokenGenEdition(_tokenId, _newTokenId);
         
-        _mint(_to, _newTokenId);
-        _setTokenURI(_newTokenId, tokenURI(_tokenId));
-    }
+    //     _mint(_to, _newTokenId);
+    //     _setTokenURI(_newTokenId, tokenURI(_tokenId));
+        
+    // }
     
     function updateTokenGenEdition(uint256 _tokenId, uint256 _newTokenId) internal {
         
@@ -166,7 +135,7 @@ contract DotCollectible is ERC721Token, Ownable {
     }
     
     function topupTokenValue(uint256 _tokenId) public payable {
-        require(isApprovedOrOwner(msg.sender, _tokenId));
+        require(isApprovedOrOwner(msg.sender, _tokenId), "NON Token Owner");
         
         if (msg.value > 0){
             msg.sender.transfer(msg.value);
@@ -175,7 +144,7 @@ contract DotCollectible is ERC721Token, Ownable {
     }
     
     function updateTokenValue(uint256 _tokenId, uint256 _value) internal {
-        require(isApprovedOrOwner(msg.sender, _tokenId));
+        require(isApprovedOrOwner(msg.sender, _tokenId), "NON Token Owner");
         
         Sticker storage sticker = allstickers[_tokenId];
         sticker.value += _value;
@@ -207,7 +176,7 @@ contract DotCollectible is ERC721Token, Ownable {
     function getTokenURI(
         uint256 _tokenId
     ) public view returns (string){
-       return tokenURI(_tokenId);
+        return tokenURI(_tokenId);
     }
     
     function getAllTokens() public view returns (uint256[]) {
@@ -220,7 +189,7 @@ contract DotCollectible is ERC721Token, Ownable {
     */
     function redeem(uint256 _tokenId) public {
         
-        require(isApprovedOrOwner(msg.sender, _tokenId));
+        require(isApprovedOrOwner(msg.sender, _tokenId), "NON Token Owner");
         
         uint256 val = getTokenValue(_tokenId);
         
@@ -228,6 +197,7 @@ contract DotCollectible is ERC721Token, Ownable {
             address(msg.sender).transfer(val);
             drainTokenValue(_tokenId);
         }
+
     }
     
     /**
@@ -262,6 +232,10 @@ contract DotCollectible is ERC721Token, Ownable {
     
     function getStickerOriginator(uint256 _tokenId) view public returns (uint) {
         return tokenOriginator[_tokenId];
+    }
+    
+    function getAPITokenId(string _uniqueID) view public returns (uint256) {
+        return apiIDMap[_uniqueID];
     }
 
 }
